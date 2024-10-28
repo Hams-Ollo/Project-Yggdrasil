@@ -39,4 +39,84 @@ Project Yggdrasil is a multi-agent AI system built using LangGraph for orchestra
 
 ### Installation
 
-1. Clone the repository
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/project-yggdrasil.git
+   cd project-yggdrasil
+   ```
+
+2. Create and activate virtual environment:
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Set up environment variables:
+   - Create a `.env` file in the root directory
+   - Add your API keys:
+
+     ```bash
+     GROQ_API_KEY=your_groq_key
+     OPENAI_API_KEY=your_openai_key
+     LANGCHAIN_API_KEY=your_langsmith_key
+     TAVILY_API_KEY=your_tavily_key
+     ```
+
+### Running the Application
+
+1. Start the Streamlit interface:
+
+   ```bash
+   streamlit run streamlit_app.py
+   ```
+
+2. Access the web interface at `http://localhost:8501`
+
+## Features
+
+- Multi-agent conversation orchestration
+- Automatic task delegation based on request type
+- Seamless fallback to alternative LLM providers
+- Real-time conversation monitoring
+- Web search integration
+- Extensible agent architecture
+
+## Development Roadmap
+
+- [ ] Add new specialist agents (Data Analysis, Task Planning)
+- [ ] Implement advanced caching mechanisms
+- [ ] Enhance error handling and recovery
+- [ ] Add conversation memory and context management
+- [ ] Implement user authentication
+- [ ] Add support for file uploads and processing
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- LangChain team for LangGraph
+- Groq for their LLM API
+- OpenAI for fallback support
+- Streamlit for the web framework
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the maintainers.
