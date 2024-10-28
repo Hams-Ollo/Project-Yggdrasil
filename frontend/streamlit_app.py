@@ -26,22 +26,29 @@ This assistant uses multiple AI agents to help you with different tasks:
 - 💻 Coder: For programming help and code explanations
 """)
 
-# Display chat messages
+# Custom avatar URLs or Base64 images
+USER_AVATAR = "😊"  # Simple smiley face for user
+ASSISTANT_AVATAR = "🤖"  # Robot emoji to match app title
+
+# Display chat messages with custom avatars
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    with st.chat_message(
+        message["role"],
+        avatar=USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
+    ):
         st.markdown(message["content"])
 
-# Chat input
+# Chat input with custom avatars
 if prompt := st.chat_input("What can I help you with?"):
-    # Display user message
-    with st.chat_message("user"):
+    # Display user message with custom avatar
+    with st.chat_message("user", avatar=USER_AVATAR):
         st.markdown(prompt)
     
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # Get AI response
-    with st.chat_message("assistant"):
+    # Get AI response with custom avatar
+    with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         with st.spinner("Thinking..."):
             response = run_multi_agent(prompt)
             st.markdown(response)
