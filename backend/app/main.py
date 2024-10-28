@@ -70,15 +70,45 @@ except Exception as e:
     print(f"⚠️ Warning: LangSmith setup failed: {str(e)}")
     callback_manager = CallbackManager([])
 
-# Initialize the LLM with callbacks
-print("🤖 Initializing Groq LLM...")
-llm = ChatGroq(
-    temperature=0.1,
-    model_name="mixtral-8x7b-32768",
-    api_key=os.getenv("GROQ_API_KEY"),
-    callbacks=callback_manager.handlers
-)
-print("✅ LLM initialized successfully")
+# Initialize the LLM with callbacks and fallback
+print("🤖 Initializing LLMs...")
+def get_llm():
+    """Get LLM with fallback options"""
+    try:
+        # Try Groq first
+        primary_llm = ChatGroq(
+            temperature=0.1,
+            model_name="mixtral-8x7b-32768",
+            api_key=os.getenv("GROQ_API_KEY"),
+            callbacks=callback_manager.handlers
+        )
+        # Test the LLM
+        primary_llm.invoke("test")
+        print("✅ Groq LLM initialized successfully")
+        return primary_llm
+    except Exception as e:
+        print(f"⚠️ Groq LLM failed: {str(e)}")
+        try:
+            # Fallback to OpenAI 4o-mini
+            from langchain_openai import ChatOpenAI
+            fallback_llm = ChatOpenAI(
+                temperature=0.1,
+                model_name="gpt-4o-mini",  # Using 4o-mini as fallback
+                api_key=os.getenv("OPENAI_API_KEY"),
+                callbacks=callback_manager.handlers
+            )
+            print("✅ Fallback to OpenAI 4o-mini successful")
+            return fallback_llm
+        except Exception as e:
+            print(f"❌ All LLM options failed: {str(e)}")
+            raise Exception("No available LLM services")
+
+# Initialize LLM with fallback
+try:
+    llm = get_llm()
+except Exception as e:
+    print(f"❌ Fatal error: {str(e)}")
+    sys.exit(1)
 
 # Define the agent state
 class AgentState(TypedDict):
@@ -89,14 +119,38 @@ class AgentState(TypedDict):
 print("🎯 Setting up agent prompts...")
 # Create prompts for each agent
 supervisor_prompt = ChatPromptTemplate.from_messages([
-    ("system", """You are a supervisor agent responsible for delegating tasks to specialist agents.
-    You have three specialists available:
-    - researcher: Good at finding and analyzing information
-    - writer: Good at writing and editing content
-    - coder: Good at writing and explaining code
+    ("system", """You are an intelligent supervisor agent responsible for analyzing user requests and delegating tasks to the most appropriate specialist agent. If the user is asking for information, you should delegate to the researcher. If the user is asking for content, you should delegate to the writer. If the user is asking for code, you should delegate to the coder. The Supervisor agent can engage in general conversation, but should delegate to the appropriate specialist if the user's request is for information, content, or code.
+
+    Available Specialists:
+    1. RESEARCHER
+       - Expertise: Finding, analyzing, and synthesizing information
+       - Best for: Research questions, fact-checking, data analysis, current events
+       - Use when: User needs information gathering, analysis, or verification
     
-    Determine which specialist should handle the task.
-    Respond with ONLY ONE WORD - either: researcher, writer, or coder"""),
+    2. WRITER
+       - Expertise: Content creation, editing, and organization
+       - Best for: Writing tasks, content structuring, creative work
+       - Use when: User needs text generation, editing, or content planning
+    
+    3. CODER
+       - Expertise: Programming, technical solutions, code explanation
+       - Best for: Code writing, debugging, technical implementation
+       - Use when: User needs working code, technical explanations, or programming help
+
+    Decision Protocol:
+    1. Analyze the user's request carefully
+    2. Consider the primary need (information, content, or code)
+    3. Choose the MOST appropriate specialist
+    4. Respond with EXACTLY ONE WORD from: researcher, writer, or coder
+
+    Examples:
+    - "What is quantum computing?" -> researcher
+    - "Write a blog post about AI" -> writer
+    - "How do I sort a list in Python?" -> coder
+    - "Debug this JavaScript code" -> coder
+    - "Analyze recent AI trends" -> researcher
+    - "Create a story outline" -> writer
+    """),
     MessagesPlaceholder(variable_name="messages"),
     ("human", "{input}")
 ])
