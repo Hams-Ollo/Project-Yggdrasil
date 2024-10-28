@@ -39,19 +39,6 @@ from langchain.callbacks.manager import CallbackManager
 from langchain_core.runnables import RunnableConfig
 import datetime
 
-# Add new tool imports
-from langchain.tools import WikipediaQueryRun
-from langchain_community.utilities.wikipedia import WikipediaAPIWrapper
-from langchain_community.tools import PythonREPLTool
-from langchain_community.tools.github import GitHubAction
-from langchain_community.tools import ArxivQueryRun
-from langchain_community.tools import JsonSpec
-from langchain_community.tools.file_management import (
-    ReadFileTool,
-    WriteFileTool,
-    ListDirectoryTool
-)
-
 print("📚 All libraries imported successfully")
 
 #-------------------------------------------------------------------------------------#
@@ -197,119 +184,16 @@ coder_prompt = ChatPromptTemplate.from_messages([
 ])
 print("✨ Agent prompts created successfully")
 
-# Enhanced tool setup
-print("🔧 Setting up enhanced tools...")
-
-# Research Tools
+# Create a basic search tool
+print("🔍 Initializing Tavily search tool...")
 search = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
-wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
-arxiv = ArxivQueryRun()
-
-# Coding Tools
-python_repl = PythonREPLTool()
-github = GitHubAction(
-    repository="username/repo",
-    api_token=os.getenv("GITHUB_TOKEN")
-)
-json_tool = JsonSpec()
-
-# File Management Tools
-read_file = ReadFileTool()
-write_file = WriteFileTool()
-list_files = ListDirectoryTool()
-
-# Custom Research Tool
-@tool("research_analysis")
-def analyze_research_data(query: str) -> str:
-    """Analyze research data and provide structured insights."""
-    try:
-        # Combine results from multiple sources
-        wiki_result = wikipedia.run(query)
-        arxiv_result = arxiv.run(query)
-        search_result = search.run(query)
-        
-        # Combine and structure the results
-        analysis = f"""
-        Quick Summary:
-        {search_result[:200]}...
-        
-        Academic Perspective:
-        {arxiv_result[:200]}...
-        
-        Background Information:
-        {wiki_result[:200]}...
-        """
-        return analysis
-    except Exception as e:
-        return f"Error analyzing research data: {str(e)}"
-
-# Custom Code Analysis Tool
-@tool("code_analysis")
-def analyze_code(code: str) -> str:
-    """Analyze code for best practices and potential improvements."""
-    try:
-        # Add code analysis logic here
-        import ast
-        parsed = ast.parse(code)
-        
-        # Example analysis
-        analysis = {
-            "imports": len([node for node in parsed.body if isinstance(node, ast.Import)]),
-            "functions": len([node for node in parsed.body if isinstance(node, ast.FunctionDef)]),
-            "classes": len([node for node in parsed.body if isinstance(node, ast.ClassDef)]),
-        }
-        
-        return f"""
-        Code Analysis Results:
-        - Number of imports: {analysis['imports']}
-        - Number of functions: {analysis['functions']}
-        - Number of classes: {analysis['classes']}
-        """
-    except Exception as e:
-        return f"Error analyzing code: {str(e)}"
-
-# Custom Writing Assistant Tool
-@tool("writing_assistant")
-def writing_assistant(content: str, style: str = "professional") -> str:
-    """Assist with writing tasks by providing suggestions and improvements."""
-    try:
-        # Add writing analysis logic here
-        import re
-        
-        # Basic analysis
-        word_count = len(content.split())
-        sentence_count = len(re.split(r'[.!?]+', content))
-        avg_sentence_length = word_count / max(sentence_count, 1)
-        
-        return f"""
-        Writing Analysis:
-        - Word count: {word_count}
-        - Sentence count: {sentence_count}
-        - Average sentence length: {avg_sentence_length:.1f} words
-        
-        Style Suggestions:
-        - {'Keep sentences concise' if avg_sentence_length > 20 else 'Good sentence length'}
-        - {'Consider breaking up longer sentences' if avg_sentence_length > 25 else 'Sentence structure looks good'}
-        """
-    except Exception as e:
-        return f"Error analyzing writing: {str(e)}"
+print("✅ Search tool initialized")
 
 # Create the agents
 @traceable(name="create_agent")
 def create_agent(prompt, agent_type="specialist"):
     """Create an agent with the specified prompt and type."""
     print(f"🤖 Creating {agent_type} agent...")
-    
-    # Assign tools based on agent type
-    if agent_type == "researcher":
-        tools = [search, wikipedia, arxiv, analyze_research_data]
-    elif agent_type == "coder":
-        tools = [python_repl, github, json_tool, analyze_code]
-    elif agent_type == "writer":
-        tools = [writing_assistant, read_file, write_file]
-    else:  # supervisor or default
-        tools = [search]  # Basic tools for supervisor
-    
     chain = prompt | llm
     
     @traceable(name=f"{agent_type}_agent_execution")
