@@ -1,5 +1,10 @@
+import os
+import sys
+# Add the project root to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import streamlit as st
-from main import run_multi_agent
+from backend.app.main import run_multi_agent
 
 # Set page configuration
 st.set_page_config(

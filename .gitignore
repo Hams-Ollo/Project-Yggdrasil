@@ -4,104 +4,27 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environment
 venv/
 env/
-ENV/
 .env
 .venv
-env.bak/
-venv.bak/
+ENV/
 
-# IDE specific files
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-.project
-.pydevproject
-.settings/
-*.sublime-workspace
-*.sublime-project
 
-# OS specific files
+# OS
 .DS_Store
 Thumbs.db
-*.bak
-*.tmp
-*.log
 
-# LangChain & LangSmith specific
+# LangChain/LangSmith
 .langchain.db
 .langsmith/
-langchain.db
-.env
-*.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
-# Testing
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
+# Distribution
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
+build/
 *.egg-info/
-.installed.cfg
-*.egg
-
-# Logs and databases
-*.log
-*.sql
-*.sqlite
-*.db
-
-# Project specific
-backend/app/__pycache__/
-*.pyc
-.streamlit/secrets.toml
-
