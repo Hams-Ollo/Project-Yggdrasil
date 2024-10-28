@@ -31,6 +31,11 @@ from langgraph.prebuilt import create_react_agent
 from langchain_groq import ChatGroq
 from langchain_community.tools.tavily_search import TavilySearchResults
 import functools
+from langsmith import traceable
+from langchain_core.tracers import ConsoleCallbackHandler
+from langchain.callbacks.manager import CallbackManager
+from langchain_core.runnables import RunnableConfig
+import datetime
 
 print("📚 All libraries imported successfully")
 
@@ -38,12 +43,40 @@ print("📚 All libraries imported successfully")
 #  AI Multi-Agent Setup
 #-------------------------------------------------------------------------------------#
 
-# Initialize the LLM (Groq in this case)
+# Add these imports at the top with the other imports
+# from langsmith import traceable
+# Remove: from langchain.callbacks.traceable_chain import TraceableChain
+# from langchain_core.tracers import ConsoleCallbackHandler
+# from langchain.callbacks.manager import CallbackManager
+# from langchain_core.runnables import RunnableConfig
+# import datetime
+
+# Update LangSmith setup
+print("🔄 Setting up LangSmith tracing...")
+try:
+    from langsmith import Client
+    client = Client()
+    
+    # Configure LangSmith environment variables
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+    os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
+    os.environ["LANGCHAIN_PROJECT"] = "Project-Yggdrasil"
+    
+    # Create callback manager for tracing
+    callback_manager = CallbackManager([ConsoleCallbackHandler()])
+    print("✅ LangSmith configuration loaded successfully")
+except Exception as e:
+    print(f"⚠️ Warning: LangSmith setup failed: {str(e)}")
+    callback_manager = CallbackManager([])
+
+# Initialize the LLM with callbacks
 print("🤖 Initializing Groq LLM...")
 llm = ChatGroq(
     temperature=0.1,
     model_name="mixtral-8x7b-32768",
-    api_key=os.getenv("GROQ_API_KEY")
+    api_key=os.getenv("GROQ_API_KEY"),
+    callbacks=callback_manager.handlers
 )
 print("✅ LLM initialized successfully")
 
@@ -97,18 +130,33 @@ search = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
 print("✅ Search tool initialized")
 
 # Create the agents
+@traceable(name="create_agent")
 def create_agent(prompt, agent_type="specialist"):
     """Create an agent with the specified prompt and type."""
     print(f"🤖 Creating {agent_type} agent...")
     chain = prompt | llm
     
+    @traceable(name=f"{agent_type}_agent_execution")
     def agent_fn(state):
         print(f"\n📝 {agent_type.title()} agent receiving state: {state}")
         
-        result = chain.invoke({
-            "messages": state["messages"],
-            "input": state["input"]
-        })
+        # Create a trace config
+        config = RunnableConfig(
+            tags=[agent_type, "agent_execution"],
+            metadata={
+                "agent_type": agent_type,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "input_messages_count": len(state["messages"])
+            }
+        )
+        
+        result = chain.invoke(
+            {
+                "messages": state["messages"],
+                "input": state["input"]
+            },
+            config=config
+        )
         
         print(f"💡 {agent_type.title()} agent result: {result}")
         
@@ -137,15 +185,14 @@ coder_chain = create_agent(coder_prompt, "coder")
 print("✅ Agent chains created successfully")
 
 # Define workflow functions
+@traceable(name="route_to_agent")
 def route_to_agent(state: AgentState) -> Literal["researcher", "writer", "coder", "end"]:
     """Route the message to the appropriate agent based on supervisor's decision."""
     print("\n🔄 Routing message to appropriate agent...")
     messages = state["messages"]
-    # Get the last message from the supervisor and clean it
     last_message = messages[-1].content.lower().strip().replace("'", "").replace('"', "")
-    print(f"👨‍💼 Supervisor's decision: {last_message}")  # Debug print
+    print(f"👨‍💼 Supervisor's decision: {last_message}")
     
-    # Map possible variations of responses
     response_map = {
         "researcher": "researcher",
         "research": "researcher",
@@ -158,7 +205,6 @@ def route_to_agent(state: AgentState) -> Literal["researcher", "writer", "coder"
         "programmer": "coder"
     }
     
-    # Get the mapped response or return "end" instead of END
     result = response_map.get(last_message, "end")
     print(f"➡️ Routing to: {result}")
     return result
@@ -204,11 +250,21 @@ chain = workflow.compile()
 print("✅ Workflow compiled successfully")
 
 # Function to run the multi-agent system
+@traceable(name="multi_agent_system")
 def run_multi_agent(user_input: str) -> str:
     """Run the multi-agent system with user input."""
     print("\n----------------------------------------")
     print(f"🎯 Processing new user input: {user_input}")
-    # Create initial state with the user's message
+    
+    # Create trace config for the full run
+    config = RunnableConfig(
+        tags=["full_conversation"],
+        metadata={
+            "timestamp": datetime.datetime.now().isoformat(),
+            "input_length": len(user_input)
+        }
+    )
+    
     initial_state = {
         "messages": [HumanMessage(content=user_input)],
         "next": None,
@@ -216,10 +272,8 @@ def run_multi_agent(user_input: str) -> str:
     }
     
     print("🔄 Running chain with initial state...")
-    # Run the chain with the initial state
-    result = chain.invoke(initial_state)
+    result = chain.invoke(initial_state, config=config)
     
-    # Get the final message
     final_message = result["messages"][-1].content
     print(f"✨ Final response: {final_message}")
     print("----------------------------------------\n")
