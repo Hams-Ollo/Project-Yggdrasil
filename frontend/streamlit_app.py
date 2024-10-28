@@ -21,9 +21,6 @@ if "messages" not in st.session_state:
 st.title("🤖 Multi-Agent Assistant")
 st.markdown("""
 This assistant uses multiple AI agents to help you with different tasks:
-- 📚 Researcher: For finding and analyzing information
-- ✍️ Writer: For writing and editing content
-- 💻 Coder: For programming help and code explanations
 """)
 
 # Custom avatar URLs or Base64 images
@@ -62,10 +59,10 @@ with st.sidebar:
     st.markdown("""
     This is a multi-agent AI assistant that uses specialized agents for different tasks:
     
-    - **Supervisor**: Routes your request to the appropriate specialist
-    - **Researcher**: Handles information gathering and analysis
-    - **Writer**: Handles content creation and editing
-    - **Coder**: Handles programming-related questions
+    - 🎯 **Supervisor**: Routes your request to the appropriate specialist
+    - 📚 Researcher: For finding and analyzing information
+    - ✍️ Writer: For writing and editing content
+    - 💻 Coder: For programming help and code explanations
     
     Each message is analyzed by the supervisor and routed to the most appropriate specialist.
     """)
