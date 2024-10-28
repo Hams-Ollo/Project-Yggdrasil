@@ -143,7 +143,6 @@ supervisor_prompt = ChatPromptTemplate.from_messages([
     1. Analyze the user's request carefully
     2. Consider the primary need (information, content, or code)
     3. Choose the MOST appropriate specialist
-    4. Respond with EXACTLY ONE WORD from: researcher, writer, or coder
 
     Examples:
     - "What is quantum computing?" -> researcher
