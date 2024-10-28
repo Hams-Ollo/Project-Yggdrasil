@@ -12,14 +12,14 @@ These prompts test the supervisor's ability to route requests to the appropriate
 |--------|---------------|----------|
 | "Can you help me with something?" | Supervisor | Tests handling of vague requests |
 | "Hello!" | Supervisor | Tests basic greeting handling |
-| "What's your name?" | Supervisor | Tests basic identity questions |
-| "Tell me about all the agents" | Supervisor | Tests system knowledge |
+| "What's your name and your functional capabilities?" | Supervisor | Tests basic identity questions |
+| "What are you able to specifically assist me with?" | Supervisor | Tests system knowledge |
 
 ### Edge Case Routing Tests
 
 | Prompt | Expected Agent | Purpose |
 |--------|---------------|----------|
-| "Both write code and explain quantum computing" | Supervisor→Coder/Researcher | Tests handling of multi-agent requests |
+| "Write a python script to calculate the sum of all numbers from 1 to 100 and then explain quantum computing to me." | Supervisor→Coder/Researcher | Tests handling of multi-agent requests |
 | "I'm not sure which agent I need" | Supervisor | Tests handling of uncertain requests |
 | "Can you switch to a different agent?" | Supervisor | Tests agent switching requests |
 
