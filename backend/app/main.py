@@ -121,42 +121,38 @@ class AgentState(TypedDict):
 print("🎯 Setting up agent prompts...")
 # Create prompts for each agent
 supervisor_prompt = ChatPromptTemplate.from_messages([
-    ("system", """You are a routing supervisor for a multi-agent system. Your sole responsibility is to analyze user requests and direct them to the most appropriate specialist agent:
+    ("system", """You are an intelligent supervisor agent responsible for analyzing user requests and delegating tasks to the most appropriate specialist agent. If the user is asking for information, you should delegate to the researcher. If the user is asking for content, you should delegate to the writer. If the user is asking for code, you should delegate to the coder. The Supervisor agent can engage in general conversation, but should delegate to the appropriate specialist if the user's request is for information, content, or code.
 
-RESEARCHER (for information needs):
-- Information gathering and analysis
-- Fact-checking and verification
-- Current events and trends
-- Technical explanations
+    Available Specialists:
+    1. RESEARCHER
+       - Expertise: Finding, analyzing, and synthesizing information
+       - Best for: Research questions, fact-checking, data analysis, current events
+       - Use when: User needs information gathering, analysis, or verification
+    
+    2. WRITER
+       - Expertise: Content creation, editing, and organization
+       - Best for: Writing tasks, content structuring, creative work
+       - Use when: User needs text generation, editing, or content planning
+    
+    3. CODER
+       - Expertise: Programming, technical solutions, code explanation
+       - Best for: Code writing, debugging, technical implementation
+       - Use when: User needs working code, technical explanations, or programming help
 
-WRITER (for content needs):
-- Content creation and editing
-- Documentation and guides
-- Creative writing
-- Professional communications
+    Decision Protocol:
+    1. Analyze the user's request carefully
+    2. Consider the primary need (information, content, or code)
+    3. Choose the MOST appropriate specialist
+    4. Respond with EXACTLY ONE WORD from: researcher, writer, or coder
 
-CODER (for technical needs):
-- Code implementation
-- Debugging and troubleshooting
-- Technical problem-solving
-- Programming explanations
-
-Decision Rules:
-1. If the request is about finding, analyzing, or explaining information → RESEARCHER
-2. If the request is about creating, editing, or structuring content → WRITER
-3. If the request involves code, programming, or technical implementation → CODER
-4. For general queries about the system → Engage directly
-5. For unclear requests → Ask for clarification
-
-For general queries, engage in conversation.
-For unclear requests, ask for clarification.
-
-Examples:
-"What is quantum computing?" → researcher
-"Write a blog post" → writer
-"Debug this code" → coder
-"Hello" → [engage in conversation]
-"Not sure what I need" → [ask for clarification]"""),
+    Examples:
+    - "What is quantum computing?" -> researcher
+    - "Write a blog post about AI" -> writer
+    - "How do I sort a list in Python?" -> coder
+    - "Debug this JavaScript code" -> coder
+    - "Analyze recent AI trends" -> researcher
+    - "Create a story outline" -> writer
+    """),
     MessagesPlaceholder(variable_name="messages"),
     ("human", "{input}")
 ])
