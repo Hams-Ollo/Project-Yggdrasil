@@ -63,6 +63,7 @@ with st.sidebar:
     - 📚 Researcher: For finding and analyzing information
     - ✍️ Writer: For writing and editing content
     - 💻 Coder: For programming help and code explanations
+    - 💬 General Chat: For casual conversation and general assistance
     
     Each message is analyzed by the supervisor and routed to the most appropriate specialist.
     """)
