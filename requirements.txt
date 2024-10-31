@@ -13,6 +13,8 @@ click==8.1.7
 colorama==0.4.6
 dataclasses-json==0.6.7
 distro==1.9.0
+duckduckgo_search==6.3.3
+faiss-cpu==1.9.0
 filelock==3.16.1
 Flask==3.0.3
 frozenlist==1.5.0
@@ -62,6 +64,7 @@ orjson==3.10.10
 packaging==24.1
 pandas==2.2.3
 pillow==10.4.0
+primp==0.6.5
 propcache==0.2.0
 protobuf==5.28.3
 psycopg2==2.9.10
@@ -87,6 +90,7 @@ rsa==4.9
 safetensors==0.4.5
 scikit-learn==1.5.2
 scipy==1.14.1
+sentence-transformers==3.2.1
 setuptools==75.2.0
 six==1.16.0
 smmap==5.0.1
@@ -95,6 +99,7 @@ SQLAlchemy==2.0.36
 streamlit==1.39.0
 streamlit-chat==0.1.1
 sympy==1.13.1
+tavily-python==0.5.0
 tenacity==9.0.0
 threadpoolctl==3.5.0
 tiktoken==0.8.0
