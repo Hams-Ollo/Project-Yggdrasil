@@ -3,21 +3,23 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_community.tools import DuckDuckGoSearchRun
 from langgraph.graph import MessagesState, StateGraph, END, START
-from langgraph.prebuilt import ToolExecutor, ToolInvocation
+from langgraph.prebuilt import ToolNode, ToolInvocation
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import faiss
 import operator
 from typing import Annotated, Sequence, TypedDict, Union
+from langchain.tools import StructuredTool
 
 # Load environment variables
+print("🔑 Loading environment variables...")
 load_dotenv()
 
 class ContextualMemory:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
         """Initialize the contextual memory system."""
-        print("Initializing contextual memory...")
+        print("🧠 Initializing contextual memory...")
         self.embedding_model = SentenceTransformer(model_name)
         self.embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
         self.memory_index = faiss.IndexFlatL2(self.embedding_dim)
@@ -26,6 +28,7 @@ class ContextualMemory:
         
     def add_interaction(self, user_message, assistant_message):
         """Store a new interaction with both messages."""
+        print("💾 Storing new interaction in memory...")
         context = f"{user_message.content} {assistant_message.content}"
         embedding = self.embedding_model.encode([context])[0].astype('float32')
         
@@ -41,6 +44,7 @@ class ContextualMemory:
     
     def get_relevant_context(self, query, k=3):
         """Retrieve relevant context based on the query."""
+        print("🔍 Searching memory for relevant context...")
         if not self.stored_embeddings:
             return []
         
@@ -55,27 +59,27 @@ class ContextualMemory:
         return relevant_messages
 
 # Initialize LLM
-print("Initializing LLM...")
-llm = ChatOpenAI(model="gpt-4-0125-preview")
+print("🤖 Initializing LLM...")
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 # Define tools
 def multiply(a: int, b: int) -> int:
     """Multiply a and b."""
-    print("Using multiply tool")
+    print("✖️ Using multiply tool")
     result = a * b
     print(f"Multiplied {a} × {b} = {result}")
     return result
 
 def add(a: int, b: int) -> int:
     """Adds a and b."""
-    print("Using add tool")
+    print("➕ Using add tool")
     result = a + b
     print(f"Added {a} + {b} = {result}")
     return result
 
 def divide(a: int, b: int) -> float:
     """Divide a and b."""
-    print("Using divide tool")
+    print("➗ Using divide tool")
     if b == 0:
         raise ValueError("Cannot divide by zero")
     result = a / b
@@ -85,77 +89,41 @@ def divide(a: int, b: int) -> float:
 search = DuckDuckGoSearchRun()
 def logged_search(query: str) -> str:
     """Search the web."""
-    print(f"Searching for: {query}")
+    print(f"🌐 Searching web for: {query}")
     result = search.invoke(query)
-    print("Search completed")
+    print("🔎 Search completed")
     return result
 
+# Convert functions to StructuredTools
+print("🛠️ Setting up tools...")
 tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "multiply",
-            "description": "Multiply two numbers",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "a": {"type": "number"},
-                    "b": {"type": "number"}
-                },
-                "required": ["a", "b"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "add",
-            "description": "Add two numbers",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "a": {"type": "number"},
-                    "b": {"type": "number"}
-                },
-                "required": ["a", "b"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "divide",
-            "description": "Divide two numbers",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "a": {"type": "number"},
-                    "b": {"type": "number"}
-                },
-                "required": ["a", "b"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "logged_search",
-            "description": "Search the web",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string"}
-                },
-                "required": ["query"]
-            }
-        }
-    }
+    StructuredTool.from_function(
+        func=multiply,
+        name="multiply",
+        description="Multiply two numbers"
+    ),
+    StructuredTool.from_function(
+        func=add,
+        name="add",
+        description="Add two numbers"
+    ),
+    StructuredTool.from_function(
+        func=divide,
+        name="divide",
+        description="Divide two numbers"
+    ),
+    StructuredTool.from_function(
+        func=logged_search,
+        name="logged_search",
+        description="Search the web"
+    )
 ]
 
-# Create tool executor
-tool_executor = ToolExecutor({"multiply": multiply, "add": add, "divide": divide, "logged_search": logged_search})
+# Create tool node instead of executor
+tool_node = ToolNode(tools)
 
 # System message
+print("📝 Configuring system message...")
 sys_msg = SystemMessage(content="""You are a sophisticated AI assistant with access to arithmetic operations, internet search capabilities, and contextual memory. Your role is to:
 
 1. Maintain and utilize conversation context:
@@ -192,6 +160,7 @@ class AgentState(TypedDict):
 # Define agent functions
 def should_use_tool(state: AgentState) -> bool:
     """Decide if we should use a tool."""
+    print("🤔 Deciding if tools are needed...")
     messages = [sys_msg] + state["messages"]
     response = llm.invoke(messages)
     
@@ -200,6 +169,7 @@ def should_use_tool(state: AgentState) -> bool:
 
 def call_tool(state: AgentState) -> AgentState:
     """Call the appropriate tool."""
+    print("🔧 Calling tools...")
     messages = [sys_msg] + state["messages"]
     response = llm.invoke(messages)
     
@@ -213,7 +183,7 @@ def call_tool(state: AgentState) -> AgentState:
             tool=tool_call.function.name,
             tool_input=tool_call.function.arguments
         )
-        result = tool_executor.invoke(action)
+        result = tool_node.invoke(action)
         tool_results.append(result)
     
     new_messages = state["messages"] + [AIMessage(content=str(tool_results))]
@@ -221,6 +191,7 @@ def call_tool(state: AgentState) -> AgentState:
 
 def agent_response(state: AgentState) -> AgentState:
     """Generate the agent's response."""
+    print("💭 Generating response...")
     messages = [sys_msg] + state["messages"]
     response = llm.invoke(messages)
     return {"messages": state["messages"] + [response]}
@@ -228,12 +199,12 @@ def agent_response(state: AgentState) -> AgentState:
 # Build graph
 def build_graph():
     """Build and compile the LangGraph state graph."""
-    print("Building graph...")
+    print("🏗️ Building graph...")
     workflow = StateGraph(AgentState)
     
     # Add nodes
     workflow.add_node("agent", agent_response)
-    workflow.add_node("tool_caller", call_tool)
+    workflow.add_node("tool_caller", tool_node)
     
     # Add edges
     workflow.set_entry_point("agent")
@@ -247,12 +218,12 @@ def build_graph():
     )
     workflow.add_edge("tool_caller", "agent")
     
-    print("Graph built successfully")
+    print("✅ Graph built successfully")
     return workflow.compile()
 
 def print_message(message):
     """Print a single message with clear formatting."""
-    role = "Assistant" if message.type == "ai" else "Human"
+    role = "🤖 Assistant" if message.type == "ai" else "👤 Human"
     print(f"\n{role}: {message.content}")
 
 def print_messages(messages):
@@ -264,7 +235,7 @@ def print_messages(messages):
 
 def chat_interface():
     """Interactive chat interface with enhanced contextual memory."""
-    print("\nWelcome to the Enhanced AI Assistant Chat!")
+    print("\n👋 Welcome to the Enhanced AI Assistant Chat!")
     print("""
 Available capabilities:
 • Arithmetic calculations (add, multiply, divide)
@@ -281,15 +252,16 @@ Type 'exit' to end the conversation.
     
     while True:
         try:
-            user_input = input("You: ").strip()
+            user_input = input("👤 You: ").strip()
             
             if user_input.lower() == 'exit':
-                print("\nThank you for chatting! Goodbye!")
+                print("\n👋 Thank you for chatting! Goodbye!")
                 break
                 
             if not user_input:
                 continue
                 
+            print("🔄 Processing your message...")
             user_message = HumanMessage(content=user_input)
             context_messages = memory.get_relevant_context(user_input)
             messages = context_messages + [user_message]
@@ -301,8 +273,8 @@ Type 'exit' to end the conversation.
             memory.add_interaction(user_message, assistant_message)
             
         except Exception as e:
-            print(f"\nAn error occurred: {str(e)}")
-            print("Please try again with a different query.\n")
+            print(f"\n❌ An error occurred: {str(e)}")
+            print("🔄 Please try again with a different query.\n")
 
 if __name__ == "__main__":
     chat_interface()
