@@ -24,143 +24,94 @@ from interactive_chat_langgraph import build_graph, ContextualMemory, sys_msg
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 import time
 
+# Initialize session state
 def init_session_state():
-    """Initialize session state variables."""
     if 'messages' not in st.session_state:
         st.session_state.messages = []
-    if 'graph' not in st.session_state:
-        st.session_state.graph = build_graph()
     if 'memory' not in st.session_state:
         st.session_state.memory = ContextualMemory()
+    if 'graph' not in st.session_state:
+        st.session_state.graph = build_graph()
+
+def display_message(message, is_user: bool):
+    """Display a single message with appropriate styling"""
+    with st.chat_message("😊" if is_user else "🤖"):
+        st.markdown(message.content)
+
+def display_chat_history():
+    """Display all messages in the chat history"""
+    for message in st.session_state.messages:
+        is_user = isinstance(message, HumanMessage)
+        display_message(message, is_user)
+
+def process_user_input(user_input: str) -> None:
+    """Process user input and generate response"""
+    if user_input:
+        # Create user message
+        user_message = HumanMessage(content=user_input)
+        st.session_state.messages.append(user_message)
         
-def display_message(role, content, avatar):
-    """Display a single message with a typing effect for AI responses."""
-    with st.chat_message(role, avatar=avatar):
-        if role == "assistant":
-            # Simulate typing effect for AI responses
-            message_placeholder = st.empty()
-            full_response = content
+        # Get relevant context from memory
+        context_messages = st.session_state.memory.get_relevant_context(user_input)
+        messages = context_messages + [user_message]
+        
+        # Generate response
+        with st.spinner("Thinking..."):
+            result = st.session_state.graph.invoke({"messages": messages})
+            assistant_message = result['messages'][-1]
             
-            # Split response into smaller chunks for smoother typing effect
-            chunk_size = max(len(full_response) // 50, 1)
-            for i in range(0, len(full_response) + chunk_size, chunk_size):
-                message_placeholder.markdown(full_response[:i] + "▌")
-                time.sleep(0.01)
-            
-            message_placeholder.markdown(full_response)
-        else:
-            st.markdown(content)
+        # Store in memory and session state
+        st.session_state.memory.add_interaction(user_message, assistant_message)
+        st.session_state.messages.append(assistant_message)
 
-def main():
-    # Page configuration
-    st.set_page_config(
-        page_title="AI Assistant",
-        page_icon="🤖",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
-
-    # Custom CSS for better styling
-    st.markdown("""
-        <style>
-        .stApp {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .stMarkdown {
-            font-size: 16px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Initialize session state
-    init_session_state()
-
-    # Header with custom styling
-    st.markdown("""
-        <h1 style='text-align: center; color: #4a90e2;'>
-            🤖 AI Assistant
-        </h1>
-    """, unsafe_allow_html=True)
-    
-    # Sidebar with capabilities info
+def create_sidebar():
+    """Create the sidebar with information and controls"""
     with st.sidebar:
-        st.markdown("### 🛠️ Capabilities")
+        st.title("🤖 AI Assistant")
+        st.markdown("""
+        ### Capabilities:
+        - ✨ Contextual Memory
+        - 🧮 Arithmetic Operations
+        - 🔍 Web Search
+        - 🤝 Combined Operations
         
-        # Tool sections with expandable details
-        with st.expander("🧮 Mathematical Operations"):
-            st.markdown("""
-                - Addition
-                - Multiplication
-                - Division
-                - Step-by-step solutions
-            """)
-            
-        with st.expander("🌐 Web Search"):
-            st.markdown("""
-                - Real-time information lookup
-                - Source verification
-                - Summarized results
-            """)
-            
-        with st.expander("🧠 Contextual Memory"):
-            st.markdown("""
-                - Remembers conversation history
-                - Maintains context
-                - Provides relevant references
-            """)
-        
-        st.markdown("### 💡 Tips")
-        st.info("""
-            - Be specific with your questions
-            - For calculations, provide clear numbers
-            - For searches, use precise keywords
-            - Use natural language
+        ### Available Tools:
+        1. `multiply`: Multiply two numbers
+        2. `add`: Add two numbers
+        3. `divide`: Divide two numbers
+        4. `logged_search`: Search the web
         """)
         
-        # Add a clear chat button
-        if st.button("🗑️ Clear Chat"):
+        if st.button("Clear Chat History"):
             st.session_state.messages = []
             st.session_state.memory = ContextualMemory()
-            st.experimental_rerun()
+            st.rerun()
 
-    # Main chat container
-    chat_container = st.container()
+def main():
+    # Set page configuration
+    st.set_page_config(
+        page_title="AI Assistant Chat",
+        page_icon="🤖",
+        layout="wide",
+    )
     
-    with chat_container:
-        # Display chat history
-        for message in st.session_state.messages:
-            avatar = "🤖" if isinstance(message, AIMessage) else "👤"
-            role = "assistant" if isinstance(message, AIMessage) else "user"
-            display_message(role, message.content, avatar)
-
-        # Chat input
-        if prompt := st.chat_input("What would you like to know?"):
-            # Add user message to state and display
-            user_message = HumanMessage(content=prompt)
-            st.session_state.messages.append(user_message)
-            display_message("user", prompt, "👤")
-
-            try:
-                with st.spinner("🤔 Thinking..."):
-                    # Get context and process through graph
-                    context_messages = st.session_state.memory.get_relevant_context(prompt)
-                    messages = context_messages + [user_message]
-                    
-                    # Process through graph
-                    result = st.session_state.graph.invoke({"messages": messages})
-                    assistant_message = result['messages'][-1]
-
-                    # Add to memory and state
-                    st.session_state.memory.add_interaction(user_message, assistant_message)
-                    st.session_state.messages.append(assistant_message)
-
-                    # Display assistant response
-                    display_message("assistant", assistant_message.content, "🤖")
-
-            except Exception as e:
-                st.error(f"❌ An error occurred: {str(e)}")
-                st.warning("Please try again with a different query.")
+    # Initialize session state
+    init_session_state()
+    
+    # Create sidebar
+    create_sidebar()
+    
+    # Main chat container
+    st.title("💬 Chat with AI Assistant")
+    
+    # Display chat history
+    display_chat_history()
+    
+    # Chat input
+    user_input = st.chat_input("Type your message here...")
+    if user_input:
+        process_user_input(user_input)
+        st.rerun()
 
 if __name__ == "__main__":
-    main() 
+    main()
