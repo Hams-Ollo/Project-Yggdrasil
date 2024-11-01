@@ -32,10 +32,20 @@ import faiss
 import operator
 from typing import Annotated, Sequence, TypedDict, Union
 from langchain.tools import StructuredTool
+from langsmith import Client
 
 # Load environment variables
 print("🔑 Loading environment variables...")
 load_dotenv()
+
+# Initialize LangSmith client
+client = Client()
+try:
+    # Try to get existing project or create new one
+    project = client.create_project("Project-Yggdrasil")
+except Exception as e:
+    print(f"Note: Project setup error: {e}")
+    # Continue anyway as tracing will still work with default project
 
 class ContextualMemory:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
@@ -81,7 +91,9 @@ class ContextualMemory:
 
 # Initialize LLM
 print("🤖 Initializing LLM...")
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(
+    model="gpt-4o-mini"
+)
 
 # Define tools
 def multiply(a: int, b: int) -> int:
@@ -140,7 +152,7 @@ tools = [
     )
 ]
 
-# Create tool node instead of executor
+# Create tool node
 tool_node = ToolNode(tools)
 
 # System message
