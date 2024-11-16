@@ -37,6 +37,8 @@ from typing import Optional, Type
 from pydantic import BaseModel, Field
 from langchain_core.tools import BaseTool
 from langchain_core.callbacks import CallbackManagerForToolRun, AsyncCallbackManagerForToolRun
+from datetime import datetime
+import pytz  # For timezone handling
 
 # Load environment variables
 print("🔑 Loading environment variables...")
@@ -174,10 +176,14 @@ class SearchTool(BaseTool):
         """Execute the web search."""
         if not query or not isinstance(query, str):
             raise ValueError(f"Invalid query: {query}")
+        
+        # Get current timestamp
+        current_time = datetime.now(pytz.UTC).astimezone()  # Get local time
+        timestamp = current_time.strftime("%Y-%m-%d %H:%M:%S %Z")
             
         # Add time context to the query
-        current_context = "current 2024"
-        enhanced_query = f"{query} {current_context}"
+        current_year = current_time.strftime("%Y")
+        enhanced_query = f"{query} current {current_year}"
         print(f"🌐 Searching web for: {enhanced_query}")
         
         try:
@@ -185,7 +191,7 @@ class SearchTool(BaseTool):
             print("🔎 Search completed")
             
             # Add a note about when this search was performed
-            timestamp_note = "\nNote: This search was performed on November 1, 2024."
+            timestamp_note = f"\nNote: This search was performed on {timestamp}"
             return result + timestamp_note
             
         except Exception as e:
